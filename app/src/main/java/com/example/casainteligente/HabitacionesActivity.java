@@ -18,21 +18,14 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
+import com.example.casainteligente.bluetooth.BluetoothHelper;
+
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.UUID;
 
 public class HabitacionesActivity extends AppCompatActivity {
-    // Variables para conexión bluetooth
-    private BluetoothAdapter bluetoothAdapter;
-    private BluetoothSocket bluetoothSocket;
-    private OutputStream outputStream;
-
-    // UUID estándar del perfil SPP (para módulos HC-05 / HC-06)
-    private static final UUID MY_UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
-
-    // Dirección MAC del módulo Bluetooth (REEMPLAZAR POR LA REAL)
-    private static final String MAC_ADDRESS = "00:11:22:33:44:55";
+    private BluetoothHelper btHelper;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -45,8 +38,7 @@ public class HabitacionesActivity extends AppCompatActivity {
             return insets;
         });
 
-        // Inicializar Bluetooth
-        inicializarBluetooth();
+        btHelper = BluetoothHelper.getInstance();
 
         Switch swHabitacion1 = findViewById(R.id.swHabitacion1);
         Switch swHabitacion2 = findViewById(R.id.swHabitacion2);
@@ -70,51 +62,13 @@ public class HabitacionesActivity extends AppCompatActivity {
         swHabitacion6.setOnClickListener(switchListener);
     }
 
-    // Inicializa conexión Bluetooth en un hilo separado
-    private void inicializarBluetooth() {
-        bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-
-        if (bluetoothAdapter == null) {
-            Toast.makeText(this, "Bluetooth no disponible", Toast.LENGTH_LONG).show();
-            return;
-        }
-
-        if (!bluetoothAdapter.isEnabled()) {
-            Toast.makeText(this, "Bluetooth apagado. Actívalo.", Toast.LENGTH_LONG).show();
-            return;
-        }
-
-        new Thread(() -> {
-            try {
-                BluetoothDevice device = bluetoothAdapter.getRemoteDevice(MAC_ADDRESS);
-                bluetoothSocket = device.createRfcommSocketToServiceRecord(MY_UUID);
-                bluetoothSocket.connect();
-                outputStream = bluetoothSocket.getOutputStream();
-
-                if (ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
-                    // TODO: Consider calling
-                    //    ActivityCompat#requestPermissions
-                    // here to request the missing permissions, and then overriding
-                    //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-                    //                                          int[] grantResults)
-                    // to handle the case where the user grants the permission. See the documentation
-                    // for ActivityCompat#requestPermissions for more details.
-                    return;
-                }
-                runOnUiThread(() ->
-                        Toast.makeText(this, "Conectado a " + device.getName(), Toast.LENGTH_SHORT).show()
-                );
-            } catch (IOException e) {
-                runOnUiThread(() ->
-                        Toast.makeText(this, "Error al conectar Bluetooth", Toast.LENGTH_LONG).show()
-                );
-                e.printStackTrace();
-            }
-        }).start();
-    }
-
     // Maneja los eventos de los switchs
     private void manejarSwitch(Switch sw) {
+        if (!btHelper.isConnected()) {
+            Toast.makeText(this, "Bluetooth no conectado", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
         int id = sw.getId();
         String mensaje;
         String comandoBT = "";
@@ -175,37 +129,6 @@ public class HabitacionesActivity extends AppCompatActivity {
         Toast.makeText(this, mensaje, Toast.LENGTH_SHORT).show();
 
         // Enviar comando por Bluetooth
-        enviarComandoBT(comandoBT);
-    }
-
-    // Envia un comando por Bluetooth
-    private void enviarComandoBT(String comando) {
-        if (outputStream == null) {
-            Toast.makeText(this, "Bluetooth no conectado", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        new Thread(() -> {
-            try {
-                outputStream.write(comando.getBytes());
-            } catch (IOException e) {
-                runOnUiThread(() ->
-                        Toast.makeText(this, "Error al enviar comando", Toast.LENGTH_SHORT).show()
-                );
-                e.printStackTrace();
-            }
-        }).start();
-    }
-
-    // Cierra conexión al salir
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        try {
-            if (outputStream != null) outputStream.close();
-            if (bluetoothSocket != null) bluetoothSocket.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        btHelper.sendCommand(comandoBT);
     }
 }
