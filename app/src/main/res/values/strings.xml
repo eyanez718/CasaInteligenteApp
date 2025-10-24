@@ -1,0 +1,12 @@
+<resources>
+    <string name="app_name">CasaInteligente</string>
+    <string name="main_msj_bienvenida">Aplicación casa inteligente, maneje las luces con los interruptores verá a continuación</string>
+    <string name="main_btn_habitaciones">Habitaciones</string>
+    <string name="main_btn_escenarios">Escenarios</string>
+    <string name="hab_msj_principal">Encienda o apague manualmente las habitaciones</string>
+    <!--<string-array name="days_of_week">
+        <item>Lunes</item>
+        <item>Martes</item>
+        <item>Miércoles</item>
+    </string-array>-->
+</resources>
