@@ -6,6 +6,7 @@ import android.graphics.PorterDuff;
 import android.os.Bundle;
 import android.text.InputType;
 import android.view.MenuItem;
+import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
@@ -51,7 +52,7 @@ public class HabitacionesActivity extends AppCompatActivity {
         // Referencio al controlador de habitaciones
         controladorHabitaciones = ControladorHabitaciones.getInstance(this);
         // Referencio a la instancia del bluetooth
-        btHelper = BluetoothHelper.getInstance();
+        btHelper = BluetoothHelper.getInstance(this);
 
         LinearLayout layoutHabitaciones = findViewById(R.id.layoutHabitaciones);
         Button btnAgregar = findViewById(R.id.btnAgregarHabitacion);
@@ -65,6 +66,15 @@ public class HabitacionesActivity extends AppCompatActivity {
         btnEliminar.setOnClickListener(v -> eliminarHabitacion(layoutHabitaciones));
     }
 
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        if (item.getItemId() == android.R.id.home) {
+            finish();
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
+    }
+
     private void cargarHabitaciones(LinearLayout layoutHabitaciones) {
         layoutHabitaciones.removeAllViews();
         ArrayList<Habitacion> lista = controladorHabitaciones.getListaHabitaciones();
@@ -74,6 +84,20 @@ public class HabitacionesActivity extends AppCompatActivity {
             String txtHabitacion = "(" + h.getId() + ") " + h.getNombre();
             sw.setText(txtHabitacion);
             sw.setChecked(h.getEstado());
+            // Aplico margenes a los switchs
+            LinearLayout.LayoutParams params =
+                    new LinearLayout.LayoutParams(
+                            ViewGroup.LayoutParams.MATCH_PARENT,
+                            ViewGroup.LayoutParams.WRAP_CONTENT
+                    );
+            // Convierto los 20dp en pixeles
+            float densidad = getResources().getDisplayMetrics().density;
+            int margenLateral = Math.round(20 * densidad);
+            int margenVertical = Math.round(10 * densidad);
+            // Aplicar los márgenes izquierdo y derecho
+            params.setMargins(margenLateral, margenVertical, margenLateral, margenVertical);
+            sw.setLayoutParams(params);
+            // Fin de aplicaión de margenes
             sw.setOnCheckedChangeListener((buttonView, isChecked) -> {
                 h.setEstado(isChecked);
                 controladorHabitaciones.actualizarEstado(h, isChecked);
@@ -84,15 +108,6 @@ public class HabitacionesActivity extends AppCompatActivity {
             });
             layoutHabitaciones.addView(sw);
         }
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        if (item.getItemId() == android.R.id.home) {
-            finish();
-            return true;
-        }
-        return super.onOptionsItemSelected(item);
     }
 
     private void mostrarDialogoAgregarHabitacion(LinearLayout layoutHabitaciones) {

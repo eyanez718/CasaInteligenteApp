@@ -21,27 +21,48 @@
         app:layout_constraintEnd_toEndOf="parent"/>
 
     <TextView
-        android:id="@+id/txtPresentacion"
-        android:layout_width="330dp"
+        android:id="@+id/txtPrincipal"
+        android:layout_width="0dp"
         android:layout_height="37dp"
+        android:layout_marginTop="20dp"
+        android:layout_marginStart="20dp"
+        android:layout_marginEnd="20dp"
         android:text="@string/hab_msj_principal"
-        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintBottom_toBottomOf="@+id/txtSecundario"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.493"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/toolbar"
         app:layout_constraintVertical_bias="0.074" />
 
+    <TextView
+        android:id="@+id/txtSecundario"
+        android:layout_width="0dp"
+        android:layout_height="37dp"
+        android:layout_marginStart="20dp"
+        android:layout_marginEnd="20dp"
+        android:text="@string/hab_msj_secundario"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.493"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/txtPrincipal"
+        app:layout_constraintBottom_toTopOf="@+id/layoutHabitaciones"
+        app:layout_constraintVertical_bias="0.074" />
+
     <LinearLayout
         android:id="@+id/layoutHabitaciones"
-        android:layout_width="393dp"
+        android:layout_width="0dp"
         android:layout_height="434dp"
         android:layout_marginTop="16dp"
+        android:layout_marginStart="20dp"
+        android:layout_marginEnd="20dp"
         android:orientation="vertical"
+        android:background="@color/design_default_color_surface"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.476"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/txtPresentacion">
+        app:layout_constraintTop_toBottomOf="@+id/txtSecundario">
     </LinearLayout>
 
     <Button

@@ -7,7 +7,8 @@
     <string name="main_btn_conectar">Conectar</string>
     <string name="main_btn_habitaciones">Habitaciones</string>
     <string name="main_btn_escenarios">Escenarios</string>
-    <string name="hab_msj_principal">Encienda o apague manualmente las habitaciones</string>
+    <string name="hab_msj_principal">Administre las habitaciones que desea controlar</string>
+    <string name="hab_msj_secundario">* Puede agregar hasta 6 habitaciones (con id entre 1 y 6).</string>
     <!--<string-array name="days_of_week">
         <item>Lunes</item>
         <item>Martes</item>
