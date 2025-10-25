@@ -1,5 +1,8 @@
 <resources>
     <string name="app_name">CasaInteligente</string>
+    <string name="global_btn_agregar">Agregar</string>
+    <string name="global_btn_editar">Editar</string>
+    <string name="global_btn_eliminar">Eliminar</string>
     <string name="main_msj_bienvenida">Aplicación casa inteligente, maneje las luces con los interruptores verá a continuación</string>
     <string name="main_btn_conectar">Conectar</string>
     <string name="main_btn_habitaciones">Habitaciones</string>

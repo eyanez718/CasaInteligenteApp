@@ -1,31 +1,33 @@
 package com.example.casainteligente;
 
-import android.Manifest;
-import android.bluetooth.BluetoothAdapter;
-import android.bluetooth.BluetoothDevice;
-import android.bluetooth.BluetoothSocket;
-import android.content.pm.PackageManager;
+import android.app.AlertDialog;
+import android.graphics.Color;
+import android.graphics.PorterDuff;
 import android.os.Bundle;
-import android.util.Log;
-import android.view.View;
+import android.text.InputType;
+import android.view.MenuItem;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.LinearLayout;
 import android.widget.Switch;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.ActivityCompat;
+import androidx.appcompat.widget.Toolbar;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
 import com.example.casainteligente.bluetooth.BluetoothHelper;
+import com.example.casainteligente.controladores.ControladorHabitaciones;
+import com.example.casainteligente.modelos.Habitacion;
 
-import java.io.IOException;
-import java.io.OutputStream;
-import java.util.UUID;
+import java.util.ArrayList;
 
 public class HabitacionesActivity extends AppCompatActivity {
     private BluetoothHelper btHelper;
+    private ControladorHabitaciones controladorHabitaciones;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -38,97 +40,228 @@ public class HabitacionesActivity extends AppCompatActivity {
             return insets;
         });
 
+        // Manejo la barra de acciones
+        Toolbar toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        }
+        toolbar.getNavigationIcon().setColorFilter(Color.WHITE, PorterDuff.Mode.SRC_ATOP);
+
+        // Referencio al controlador de habitaciones
+        controladorHabitaciones = ControladorHabitaciones.getInstance(this);
+        // Referencio a la instancia del bluetooth
         btHelper = BluetoothHelper.getInstance();
 
-        Switch swHabitacion1 = findViewById(R.id.swHabitacion1);
-        Switch swHabitacion2 = findViewById(R.id.swHabitacion2);
-        Switch swHabitacion3 = findViewById(R.id.swHabitacion3);
-        Switch swHabitacion4 = findViewById(R.id.swHabitacion4);
-        Switch swHabitacion5 = findViewById(R.id.swHabitacion5);
-        Switch swHabitacion6 = findViewById(R.id.swHabitacion6);
+        LinearLayout layoutHabitaciones = findViewById(R.id.layoutHabitaciones);
+        Button btnAgregar = findViewById(R.id.btnAgregarHabitacion);
+        Button btnEditar = findViewById(R.id.btnEditarHabitacion);
+        Button btnEliminar = findViewById(R.id.btnEliminarHabitacion);
 
-        View.OnClickListener switchListener = new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                manejarSwitch((Switch) v);
-            }
-        };
+        cargarHabitaciones(layoutHabitaciones);
 
-        swHabitacion1.setOnClickListener(switchListener);
-        swHabitacion2.setOnClickListener(switchListener);
-        swHabitacion3.setOnClickListener(switchListener);
-        swHabitacion4.setOnClickListener(switchListener);
-        swHabitacion5.setOnClickListener(switchListener);
-        swHabitacion6.setOnClickListener(switchListener);
+        btnAgregar.setOnClickListener(v -> mostrarDialogoAgregarHabitacion(layoutHabitaciones));
+        btnEditar.setOnClickListener(v -> editarHabitacion(layoutHabitaciones));
+        btnEliminar.setOnClickListener(v -> eliminarHabitacion(layoutHabitaciones));
     }
 
-    // Maneja los eventos de los switchs
-    private void manejarSwitch(Switch sw) {
-        if (!btHelper.isConnected()) {
-            Toast.makeText(this, "Bluetooth no conectado", Toast.LENGTH_SHORT).show();
+    private void cargarHabitaciones(LinearLayout layoutHabitaciones) {
+        layoutHabitaciones.removeAllViews();
+        ArrayList<Habitacion> lista = controladorHabitaciones.getListaHabitaciones();
+
+        for (Habitacion h : lista) {
+            Switch sw = new Switch(this);
+            String txtHabitacion = "(" + h.getId() + ") " + h.getNombre();
+            sw.setText(txtHabitacion);
+            sw.setChecked(h.getEstado());
+            sw.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                h.setEstado(isChecked);
+                controladorHabitaciones.actualizarEstado(h, isChecked);
+                btHelper.sendCommand(h.getId() + (isChecked ? "1" : "0"));
+                Toast.makeText(this,
+                        h.getNombre() + (isChecked ? " encendida" : " apagada"),
+                        Toast.LENGTH_SHORT).show();
+            });
+            layoutHabitaciones.addView(sw);
+        }
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        if (item.getItemId() == android.R.id.home) {
+            finish();
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
+    }
+
+    private void mostrarDialogoAgregarHabitacion(LinearLayout layoutHabitaciones) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Agregar nueva habitación");
+
+        // Contenedor vertical para los dos EditText
+        LinearLayout layout = new LinearLayout(this);
+        layout.setOrientation(LinearLayout.VERTICAL);
+        layout.setPadding(50, 40, 50, 10);
+
+        final EditText inputId = new EditText(this);
+        inputId.setHint("ID numérico (único)");
+        inputId.setInputType(InputType.TYPE_CLASS_NUMBER);
+        layout.addView(inputId);
+
+        final EditText inputNombre = new EditText(this);
+        inputNombre.setHint("Nombre de la habitación");
+        inputNombre.setInputType(InputType.TYPE_CLASS_TEXT);
+        layout.addView(inputNombre);
+
+        builder.setView(layout);
+
+        builder.setPositiveButton("Agregar", (dialog, which) -> {
+            String idText = inputId.getText().toString().trim();
+            String nombre = inputNombre.getText().toString().trim();
+
+            if (idText.isEmpty() || nombre.isEmpty()) {
+                Toast.makeText(this, "Debes ingresar un ID y un nombre", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            int id = Integer.parseInt(idText);
+
+            if (id < 1 || id > 6) {
+                Toast.makeText(this, "El ID debe ser un número entre 1 y 6", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            // Verificar duplicados
+            for (Habitacion h : controladorHabitaciones.getListaHabitaciones()) {
+                if (h.getId() == id) {
+                    Toast.makeText(this, "Ya existe una habitación con ese ID", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                if (h.getNombre().equalsIgnoreCase(nombre)) {
+                    Toast.makeText(this, "Ya existe una habitación con ese nombre", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+            }
+
+            Habitacion nueva = new Habitacion(id, nombre, false);
+            controladorHabitaciones.agregarHabitacion(nueva);
+            cargarHabitaciones(layoutHabitaciones);
+            Toast.makeText(this, "Habitación " + nombre + " agregada", Toast.LENGTH_SHORT).show();
+        });
+
+        builder.setNegativeButton("Cancelar", (dialog, which) -> dialog.cancel());
+        builder.show();
+    }
+
+    private void editarHabitacion(LinearLayout layoutHabitaciones) {
+        ArrayList<Habitacion> lista = controladorHabitaciones.getListaHabitaciones();
+        if (lista.isEmpty()) {
+            Toast.makeText(this, "No hay habitaciones para editar", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        int id = sw.getId();
-        String mensaje;
-        String comandoBT = "";
-
-        if (id == R.id.swHabitacion1) {
-            if (sw.isChecked()) {
-                mensaje = "¡Habitación 1 encendida!";
-                comandoBT = "11";
-            } else {
-                mensaje = "¡Habitación 1 apagada!";
-                comandoBT = "10";
-            }
-        } else if (id == R.id.swHabitacion2) {
-            if (sw.isChecked()) {
-                mensaje = "¡Habitación 2 encendida!";
-                comandoBT = "21";
-            } else {
-                mensaje = "¡Habitación 2 apagada!";
-                comandoBT = "20";
-            }
-        } else if (id == R.id.swHabitacion3) {
-            if (sw.isChecked()) {
-                mensaje = "¡Habitación 3 encendida!";
-                comandoBT = "31";
-            } else {
-                mensaje = "¡Habitación 3 apagada!";
-                comandoBT = "30";
-            }
-        } else if (id == R.id.swHabitacion4) {
-            if (sw.isChecked()) {
-                mensaje = "¡Habitación 4 encendida!";
-                comandoBT = "41";
-            } else {
-                mensaje = "¡Habitación 4 apagada!";
-                comandoBT = "40";
-            }
-        } else if (id == R.id.swHabitacion5) {
-            if (sw.isChecked()) {
-                mensaje = "¡Habitación 5 encendida!";
-                comandoBT = "51";
-            } else {
-                mensaje = "¡Habitación 5 apagada!";
-                comandoBT = "50";
-            }
-        } else if (id == R.id.swHabitacion6) {
-            if (sw.isChecked()) {
-                mensaje = "¡Habitación 6 encendida!";
-                comandoBT = "61";
-            } else {
-                mensaje = "¡Habitación 6 apagada!";
-                comandoBT = "60";
-            }
-        } else {
-            mensaje = "Acción desconocida";
+        // Mostrar lista de habitaciones para elegir cuál editar
+        String[] nombres = new String[lista.size()];
+        for (int i = 0; i < lista.size(); i++) {
+            Habitacion h = lista.get(i);
+            nombres[i] = h.getId() + " - " + h.getNombre();
         }
 
-        // Mostrar el mensaje avisando de la acción
-        Toast.makeText(this, mensaje, Toast.LENGTH_SHORT).show();
+        new AlertDialog.Builder(this)
+                .setTitle("Selecciona una habitación para editar")
+                .setItems(nombres, (dialog, which) -> mostrarDialogoEditarHabitacion(lista.get(which), layoutHabitaciones))
+                .setNegativeButton("Cancelar", null)
+                .show();
+    }
 
-        // Enviar comando por Bluetooth
-        btHelper.sendCommand(comandoBT);
+    private void mostrarDialogoEditarHabitacion(Habitacion habitacion, LinearLayout layoutHabitaciones) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Editar habitación");
+
+        LinearLayout layout = new LinearLayout(this);
+        layout.setOrientation(LinearLayout.VERTICAL);
+        layout.setPadding(50, 40, 50, 10);
+
+        final EditText inputId = new EditText(this);
+        inputId.setHint("ID numérico (único)");
+        inputId.setInputType(InputType.TYPE_CLASS_NUMBER);
+        inputId.setText(String.valueOf(habitacion.getId()));
+        layout.addView(inputId);
+
+        final EditText inputNombre = new EditText(this);
+        inputNombre.setHint("Nombre de la habitación");
+        inputNombre.setInputType(InputType.TYPE_CLASS_TEXT);
+        inputNombre.setText(habitacion.getNombre());
+        layout.addView(inputNombre);
+
+        builder.setView(layout);
+
+        builder.setPositiveButton("Guardar cambios", (dialog, which) -> {
+            String idText = inputId.getText().toString().trim();
+            String nombre = inputNombre.getText().toString().trim();
+
+            if (idText.isEmpty() || nombre.isEmpty()) {
+                Toast.makeText(this, "Debes ingresar un ID y un nombre", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            int nuevoId = Integer.parseInt(idText);
+
+            // Valido que el id sea un número entre 1 y 6
+            if (nuevoId < 1 || nuevoId > 6) {
+                Toast.makeText(this, "El ID debe ser un número entre 1 y 6", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            // Verificar duplicados (exceptuando la habitación actual)
+            for (Habitacion h : controladorHabitaciones.getListaHabitaciones()) {
+                if (h != habitacion) {
+                    if (h.getId() == nuevoId) {
+                        Toast.makeText(this, "Ya existe una habitación con ese ID", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    if (h.getNombre().equalsIgnoreCase(nombre)) {
+                        Toast.makeText(this, "Ya existe una habitación con ese nombre", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                }
+            }
+
+            // Actualizar datos
+            habitacion.setId(nuevoId);
+            habitacion.setNombre(nombre);
+            controladorHabitaciones.guardarCambios();
+            cargarHabitaciones(layoutHabitaciones);
+            Toast.makeText(this, "Habitación actualizada", Toast.LENGTH_SHORT).show();
+        });
+
+        builder.setNegativeButton("Cancelar", (dialog, which) -> dialog.cancel());
+        builder.show();
+    }
+
+    private void eliminarHabitacion(LinearLayout layoutHabitaciones) {
+        ArrayList<Habitacion> lista = controladorHabitaciones.getListaHabitaciones();
+        if (lista.isEmpty()) {
+            Toast.makeText(this, "No hay habitaciones para eliminar", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        // Crear lista de nombres para el diálogo
+        String[] nombres = new String[lista.size()];
+        for (int i = 0; i < lista.size(); i++) {
+            nombres[i] = lista.get(i).getNombre();
+        }
+
+        new AlertDialog.Builder(this)
+                .setTitle("Eliminar habitación")
+                .setItems(nombres, (dialog, which) -> {
+                    Habitacion seleccionada = lista.get(which);
+                    controladorHabitaciones.eliminarHabitacion(seleccionada);
+                    cargarHabitaciones(layoutHabitaciones);
+                    Toast.makeText(this, seleccionada.getNombre() + " eliminada", Toast.LENGTH_SHORT).show();
+                })
+                .setNegativeButton("Cancelar", null)
+                .show();
     }
 }
